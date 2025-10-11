@@ -1,217 +1,40 @@
--- Forsaken GUI (KRNL) - Full (Speed + ESP Toggle)
+-- Key System GUI
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-
+local StarterGui = game:GetService("StarterGui")
 local player = Players.LocalPlayer
-local function getChar() return player.Character or player.CharacterAdded:Wait() end
 
--- Remove previous GUI if exists
-if player.PlayerGui:FindFirstChild("ForsakenGUI") then
-    player.PlayerGui.ForsakenGUI:Destroy()
+local KEY_LINK = "https://controlc.com/923d3032"
+local REAL_KEY = "Duy_Pro"
+
+if player.PlayerGui:FindFirstChild("KeySystemGui") then
+    player.PlayerGui.KeySystemGui:Destroy()
 end
 
--- ScreenGui
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ForsakenGUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = player:WaitForChild("PlayerGui")
+local screen = Instance.new("ScreenGui")
+screen.Name = "KeySystemGui"
+screen.ResetOnSpawn = false
+screen.Parent = player:WaitForChild("PlayerGui")
 
--- Main Frame
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 200, 0, 160)
-Frame.Position = UDim2.new(0.75, 0, 0.2, 0)
-Frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-Frame.BorderSizePixel = 0
-Frame.Active = true
-Frame.Parent = ScreenGui
-Instance.new("UICorner", Frame).CornerRadius = UDim.new(0,8)
+local frame = Instance.new("Frame", screen)
+frame.Size = UDim2.new(0, 300, 0, 140)
+frame.Position = UDim2.new(0.5, -150, 0.35, -70)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.BorderSizePixel = 0
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
 
--- Title
-local Title = Instance.new("TextLabel", Frame)
-Title.Size = UDim2.new(1, 0, 0, 28)
-Title.Position = UDim2.new(0,0,0,0)
-Title.BackgroundTransparency = 1
-Title.Text = "Forsaken GUI"
-Title.TextColor3 = Color3.fromRGB(255,255,255)
-Title.Font = Enum.Font.GothamBold
-Title.TextScaled = true
+-- title
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, -20, 0, 28)
+title.Position = UDim2.new(0,10,0,8)
+title.BackgroundTransparency = 1
+title.Text = "Key System"
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
 
--- Speed label + textbox
-local speedLabel = Instance.new("TextLabel", Frame)
-speedLabel.Size = UDim2.new(0.52, -12, 0, 20)
-speedLabel.Position = UDim2.new(0,8,0,34)
-speedLabel.BackgroundTransparency = 1
-speedLabel.TextColor3 = Color3.fromRGB(255,255,255)
-speedLabel.Font = Enum.Font.Gotham
-speedLabel.Text = "Speed: 16"
-speedLabel.TextScaled = true
-
-local speedBox = Instance.new("TextBox", Frame)
-speedBox.Size = UDim2.new(0.44, -12, 0, 24)
-speedBox.Position = UDim2.new(0.52, 4, 0, 32)
-speedBox.Text = "16"
-speedBox.ClearTextOnFocus = false
-speedBox.BackgroundColor3 = Color3.fromRGB(45,45,45)
-speedBox.TextColor3 = Color3.fromRGB(255,255,255)
-Instance.new("UICorner", speedBox)
-
--- Speed toggle
-local speedToggle = Instance.new("TextButton", Frame)
-speedToggle.Size = UDim2.new(1, -16, 0, 28)
-speedToggle.Position = UDim2.new(0,8,0,62)
-speedToggle.BackgroundColor3 = Color3.fromRGB(55,55,55)
-speedToggle.TextColor3 = Color3.fromRGB(255,255,255)
-speedToggle.Text = "Speed: OFF"
-speedToggle.Font = Enum.Font.Gotham
-speedToggle.TextScaled = true
-Instance.new("UICorner", speedToggle)
-
-local speedEnabled = false
-local bv, bvConnection
-
-local function enableSpeed(value)
-    local char = getChar()
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    local hrp = char.HumanoidRootPart
-
-    if bv and bv.Parent then pcall(function() bv:Destroy() end) end
-    if bvConnection then bvConnection:Disconnect() bvConnection = nil end
-
-    bv = Instance.new("BodyVelocity")
-    bv.Name = "ForsakenSpeedBV"
-    bv.MaxForce = Vector3.new(0,0,0)
-    bv.Velocity = Vector3.new(0,0,0)
-    bv.Parent = hrp
-
-    bvConnection = RunService.RenderStepped:Connect(function()
-        local ch = getChar()
-        local hum = ch and ch:FindFirstChildOfClass("Humanoid")
-        if not ch or not hum then return end
-        local dir = hum.MoveDirection
-        if dir.Magnitude > 0.01 then
-            bv.MaxForce = Vector3.new(1e5,0,1e5)
-            local speed = math.clamp(tonumber(value) or 16,1,100)
-            bv.Velocity = Vector3.new(dir.X*speed,0,dir.Z*speed)
-        else
-            bv.MaxForce = Vector3.new(0,0,0)
-            bv.Velocity = Vector3.new(0,0,0)
-        end
-    end)
-end
-
-local function disableSpeed()
-    if bvConnection then bvConnection:Disconnect() bvConnection = nil end
-    if bv and bv.Parent then pcall(function() bv:Destroy() end) end
-    bv = nil
-end
-
--- Speed toggle button
-speedToggle.MouseButton1Click:Connect(function()
-    speedEnabled = not speedEnabled
-    speedToggle.Text = "Speed: "..(speedEnabled and "ON" or "OFF")
-    if speedEnabled then
-        enableSpeed(speedBox.Text)
-    else
-        disableSpeed()
-    end
-end)
-
-speedBox.FocusLost:Connect(function()
-    local v = tonumber(speedBox.Text)
-    if not v then v = 16 end
-    v = math.clamp(v,1,100)
-    speedLabel.Text = "Speed: "..v
-    if speedEnabled then enableSpeed(v) end
-end)
-
--- ESP toggle
-local espToggle = Instance.new("TextButton", Frame)
-espToggle.Size = UDim2.new(1, -16, 0, 28)
-espToggle.Position = UDim2.new(0,8,0,100)
-espToggle.BackgroundColor3 = Color3.fromRGB(55,55,55)
-espToggle.TextColor3 = Color3.fromRGB(255,255,255)
-espToggle.Text = "ESP: OFF"
-espToggle.Font = Enum.Font.Gotham
-espToggle.TextScaled = true
-Instance.new("UICorner", espToggle)
-
-local espEnabled = false
-local espRecords = {}
-
-local function clearAllESP()
-    for pl,data in pairs(espRecords) do
-        if data.hl and data.hl.Parent then pcall(function() data.hl:Destroy() end) end
-        espRecords[pl] = nil
-    end
-end
-
-local function updateESP()
-    for _,pl in pairs(Players:GetPlayers()) do
-        if pl ~= player and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") and pl.Character:FindFirstChildOfClass("Humanoid") then
-            local hum = pl.Character:FindFirstChildOfClass("Humanoid")
-            local hp = hum and hum.Health or 0
-            if not espRecords[pl] then espRecords[pl] = {} end
-            if not espRecords[pl].hl then
-                local hl = Instance.new("Highlight")
-                hl.Adornee = pl.Character:FindFirstChild("HumanoidRootPart") or pl.Character:FindFirstChild("Head")
-                hl.Parent = pl.Character
-                hl.OutlineTransparency = 0
-                hl.FillTransparency = 0.7
-                espRecords[pl].hl = hl
-            end
-            local hl = espRecords[pl].hl
-            if hp < 130 then
-                hl.FillColor = Color3.fromRGB(0,255,0)
-                hl.OutlineColor = Color3.fromRGB(0,120,0)
-            elseif hp > 150 then
-                hl.FillColor = Color3.fromRGB(255,0,0)
-                hl.OutlineColor = Color3.fromRGB(150,0,0)
-            else
-                hl.FillColor = Color3.fromRGB(180,180,180)
-                hl.OutlineColor = Color3.fromRGB(120,120,120)
-            end
-        end
-    end
-end
-
-espToggle.MouseButton1Click:Connect(function()
-    espEnabled = not espEnabled
-    espToggle.Text = "ESP: "..(espEnabled and "ON" or "OFF")
-    if not espEnabled then clearAllESP() end
-end)
-
-RunService.RenderStepped:Connect(function()
-    if espEnabled then pcall(updateESP) end
-end)
-
--- Dragging GUI
-do
-    local dragging, dragInput, dragStart, startPos
-    Frame.InputBegan:Connect(function(input)
-        if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = Frame.Position
-            input.Changed:Connect(function()
-                if input.UserInputState==Enum.UserInputState.End then dragging=false end
-            end)
-        end
-    end)
-    Frame.InputChanged:Connect(function(input)
-        if input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input==dragInput then
-            local delta = input.Position - dragStart
-            Frame.Position = UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)
-        end
-    end)
-end)
-
-print("[ForsakenGUI] Loaded (Speed + ESP)")keyBox.Size = UDim2.new(1, -20, 0, 32)
+-- textbox
+local keyBox = Instance.new("TextBox", frame)
+keyBox.Size = UDim2.new(1, -20, 0, 32)
 keyBox.Position = UDim2.new(0,10,0,46)
 keyBox.PlaceholderText = "Key..."
 keyBox.Text = ""

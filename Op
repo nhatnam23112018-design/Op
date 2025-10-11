@@ -1,0 +1,222 @@
+-- Forsaken GUI (KRNL) - Final (no auto-aim / no auto-block)
+-- Features: Full Bridge, Speed (BodyVelocity toggle), ESP toggle
+-- Mobile touch drag supported. GUI shows on load.
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
+local function getChar() return player.Character or player.CharacterAdded:Wait() end
+
+-- Remove previous GUI if exists
+if player.PlayerGui:FindFirstChild("ForsakenGUI") then
+    player.PlayerGui.ForsakenGUI:Destroy()
+end
+
+-- ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ForsakenGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Main Frame
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 200, 0, 160)
+Frame.Position = UDim2.new(0.75, 0, 0.2, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Parent = ScreenGui
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0,8)
+
+-- Title
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(1, 0, 0, 28)
+Title.Position = UDim2.new(0,0,0,0)
+Title.BackgroundTransparency = 1
+Title.Text = "Forsaken GUI"
+Title.TextColor3 = Color3.fromRGB(255,255,255)
+Title.Font = Enum.Font.GothamBold
+Title.TextScaled = true
+
+-- Full Bridge button
+local FullBridge = Instance.new("TextButton", Frame)
+FullBridge.Size = UDim2.new(1, -16, 0, 28)
+FullBridge.Position = UDim2.new(0,8,0,34)
+FullBridge.BackgroundColor3 = Color3.fromRGB(55,55,55)
+FullBridge.TextColor3 = Color3.fromRGB(255,255,255)
+FullBridge.Text = "Full Bridge"
+FullBridge.Font = Enum.Font.Gotham
+FullBridge.TextScaled = true
+Instance.new("UICorner", FullBridge)
+
+FullBridge.MouseButton1Click:Connect(function()
+    pcall(function()
+        local lighting = game:GetService("Lighting")
+        lighting.FogEnd = 1e9
+        lighting.Brightness = 2
+        lighting.ClockTime = 14
+        lighting.GlobalShadows = false
+        for _, v in pairs(lighting:GetChildren()) do
+            if v:IsA("Atmosphere") or v:IsA("ColorCorrectionEffect") or v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("DepthOfFieldEffect") or v:IsA("SunRaysEffect") or v:IsA("Sky") then
+                pcall(function() v:Destroy() end)
+            end
+        end
+        pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end)
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("ParticleEmitter") or obj:IsA("Trail") then
+                pcall(function() obj.Enabled = false end)
+            end
+        end
+    end)
+end)
+
+-- Speed label + textbox + toggle
+local speedLabel = Instance.new("TextLabel", Frame)
+speedLabel.Size = UDim2.new(0.52, -12, 0, 20)
+speedLabel.Position = UDim2.new(0,8,0,70)
+speedLabel.BackgroundTransparency = 1
+speedLabel.TextColor3 = Color3.fromRGB(255,255,255)
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.Text = "Speed: 16"
+speedLabel.TextScaled = true
+
+local speedBox = Instance.new("TextBox", Frame)
+speedBox.Size = UDim2.new(0.32, -12, 0, 24)
+speedBox.Position = UDim2.new(0.52, 4, 0, 68)
+speedBox.Text = "16"
+speedBox.ClearTextOnFocus = false
+speedBox.BackgroundColor3 = Color3.fromRGB(45,45,45)
+speedBox.TextColor3 = Color3.fromRGB(255,255,255)
+Instance.new("UICorner", speedBox)
+
+local speedToggle = Instance.new("TextButton", Frame)
+speedToggle.Size = UDim2.new(0.16, -8, 0, 24)
+speedToggle.Position = UDim2.new(0.84, 0, 0, 68)
+speedToggle.BackgroundColor3 = Color3.fromRGB(55,55,55)
+speedToggle.TextColor3 = Color3.fromRGB(255,255,255)
+speedToggle.Text = "OFF"
+Instance.new("UICorner", speedToggle)
+
+local speedEnabled = false
+
+local bv = nil
+local bvConnection = nil
+local function enableSpeed(value)
+    local char = getChar()
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = char.HumanoidRootPart
+    if bv and bv.Parent then pcall(function() bv:Destroy() end) end
+    if bvConnection then bvConnection:Disconnect() bvConnection = nil end
+
+    bv = Instance.new("BodyVelocity")
+    bv.Name = "ForsakenSpeedBV"
+    bv.MaxForce = Vector3.new(0,0,0)
+    bv.Velocity = Vector3.new(0,0,0)
+    bv.Parent = hrp
+
+    bvConnection = RunService.RenderStepped:Connect(function()
+        local ch = getChar()
+        local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+        if not ch or not hum then return end
+        local dir = hum.MoveDirection
+        if dir.Magnitude > 0.01 then
+            bv.MaxForce = Vector3.new(1e5, 0, 1e5)
+            local speed = math.clamp(tonumber(value) or 16, 1, 100)
+            bv.Velocity = Vector3.new(dir.X * speed, 0, dir.Z * speed)
+        else
+            bv.MaxForce = Vector3.new(0,0,0)
+            bv.Velocity = Vector3.new(0,0,0)
+        end
+    end)
+end
+
+local function disableSpeed()
+    if bvConnection then bvConnection:Disconnect() bvConnection = nil end
+    if bv and bv.Parent then pcall(function() bv:Destroy() end) end
+    bv = nil
+end
+
+speedBox.FocusLost:Connect(function()
+    local v = tonumber(speedBox.Text)
+    if not v then v = 16 end
+    speedBox.Text = tostring(math.clamp(v,1,100))
+    speedLabel.Text = "Speed: "..speedBox.Text
+    if speedEnabled then
+        enableSpeed(speedBox.Text)
+    end
+end)
+
+speedToggle.MouseButton1Click:Connect(function()
+    speedEnabled = not speedEnabled
+    speedToggle.Text = speedEnabled and "ON" or "OFF"
+    if speedEnabled then
+        enableSpeed(speedBox.Text)
+    else
+        disableSpeed()
+    end
+end)
+
+-- ESP toggle
+local espToggle = Instance.new("TextButton", Frame)
+espToggle.Size = UDim2.new(1, -16, 0, 28)
+espToggle.Position = UDim2.new(0,8,0,108)
+espToggle.BackgroundColor3 = Color3.fromRGB(55,55,55)
+espToggle.TextColor3 = Color3.fromRGB(255,255,255)
+espToggle.Text = "ESP: OFF"
+espToggle.Font = Enum.Font.Gotham
+espToggle.TextScaled = true
+Instance.new("UICorner", espToggle)
+
+local espEnabled = false
+espToggle.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    espToggle.Text = "ESP: " .. (espEnabled and "ON" or "OFF")
+end)
+
+-- Dragging (touch + mouse)
+do
+    local dragging, dragInput, dragStart, startPos
+    Frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = Frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    Frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input == dragInput then
+            local delta = input.Position - dragStart
+            Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+-- Ensure speed disabled on script stop / character respawn
+player.CharacterAdded:Connect(function()
+    if bvConnection then bvConnection:Disconnect() end
+    if bv and bv.Parent then pcall(function() bv:Destroy() end) end
+    bv = nil
+end)
+
+player.AncestryChanged:Connect(function()
+    if not player:IsDescendantOf(game) then
+        if bvConnection then bvConnection:Disconnect() end
+        if bv and bv.Parent then pcall(function() bv:Destroy() end) end
+        bv = nil
+    end
+end)
+
+print("[ForsakenGUI] Loaded")

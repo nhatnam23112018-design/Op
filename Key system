@@ -1,0 +1,109 @@
+-- Key System GUI
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local player = Players.LocalPlayer
+
+local KEY_LINK = "https://controlc.com/923d3032"
+local REAL_KEY = "Duy_Pro"
+
+if player.PlayerGui:FindFirstChild("KeySystemGui") then
+    player.PlayerGui.KeySystemGui:Destroy()
+end
+
+local screen = Instance.new("ScreenGui")
+screen.Name = "KeySystemGui"
+screen.ResetOnSpawn = false
+screen.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame", screen)
+frame.Size = UDim2.new(0, 300, 0, 140)
+frame.Position = UDim2.new(0.5, -150, 0.35, -70)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.BorderSizePixel = 0
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
+
+-- title
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, -20, 0, 28)
+title.Position = UDim2.new(0,10,0,8)
+title.BackgroundTransparency = 1
+title.Text = "Key System"
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+
+-- textbox
+local keyBox = Instance.new("TextBox", frame)
+keyBox.Size = UDim2.new(1, -20, 0, 32)
+keyBox.Position = UDim2.new(0,10,0,46)
+keyBox.PlaceholderText = "Key..."
+keyBox.Text = ""
+keyBox.ClearTextOnFocus = false
+keyBox.BackgroundColor3 = Color3.fromRGB(45,45,45)
+keyBox.TextColor3 = Color3.fromRGB(255,255,255)
+Instance.new("UICorner", keyBox)
+
+-- buttons
+local btnFrame = Instance.new("Frame", frame)
+btnFrame.Size = UDim2.new(1, -20, 0, 36)
+btnFrame.Position = UDim2.new(0,10,0,86)
+btnFrame.BackgroundTransparency = 1
+
+local getBtn = Instance.new("TextButton", btnFrame)
+getBtn.Size = UDim2.new(0.48, 0, 1, 0)
+getBtn.Position = UDim2.new(0, 0, 0, 0)
+getBtn.BackgroundColor3 = Color3.fromRGB(55,55,55)
+getBtn.TextColor3 = Color3.fromRGB(255,255,255)
+getBtn.Text = "GetKey"
+getBtn.Font = Enum.Font.Gotham
+getBtn.TextScaled = true
+Instance.new("UICorner", getBtn)
+
+local checkBtn = Instance.new("TextButton", btnFrame)
+checkBtn.Size = UDim2.new(0.48, 0, 1, 0)
+checkBtn.Position = UDim2.new(0.52, 0, 0, 0)
+checkBtn.BackgroundColor3 = Color3.fromRGB(55,55,55)
+checkBtn.TextColor3 = Color3.fromRGB(255,255,255)
+checkBtn.Text = "Check Key"
+checkBtn.Font = Enum.Font.Gotham
+checkBtn.TextScaled = true
+Instance.new("UICorner", checkBtn)
+
+-- helper notify
+local function notify(text)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = "KeySystem",
+            Text = text,
+            Duration = 5,
+            Button1 = "OK"
+        })
+    end)
+end
+
+local function copyToClipboard(text)
+    pcall(function()
+        if setclipboard then
+            setclipboard(text)
+        elseif syn and syn.clipboard_set then
+            syn.clipboard_set(text)
+        end
+    end)
+end
+
+-- button events
+getBtn.MouseButton1Click:Connect(function()
+    copyToClipboard(KEY_LINK)
+    notify("Link copied to clipboard!")
+end)
+
+checkBtn.MouseButton1Click:Connect(function()
+    if keyBox.Text == REAL_KEY then
+        notify("Key Correct")
+        screen:Destroy()
+        
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/nhatnam23112018-design/Op/refs/heads/main/Op"))();
+    else
+        notify("Key Incorrect")
+    end
+end)

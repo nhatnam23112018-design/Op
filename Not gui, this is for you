@@ -1,0 +1,101 @@
+-- [ Forsaken Visuals + ESP + FullBright v1.0 ] by GPT-5
+
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+
+-- Xóa highlight cũ
+for _,v in pairs(workspace:GetDescendants()) do
+    if v:IsA("Highlight") or v:IsA("BillboardGui") and v.Name == "ESPTag" then
+        v:Destroy()
+    end
+end
+
+-- [ ESP System ]
+local function createESP(target, color, text)
+    if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = target.Character.HumanoidRootPart
+
+    -- Highlight
+    if not target.Character:FindFirstChild("ESPHighlight") then
+        local hl = Instance.new("Highlight")
+        hl.Name = "ESPHighlight"
+        hl.FillTransparency = 0.6
+        hl.OutlineTransparency = 0
+        hl.FillColor = color
+        hl.OutlineColor = color
+        hl.Parent = target.Character
+    end
+
+    -- Billboard Text
+    if not target.Character:FindFirstChild("ESPTag") then
+        local tag = Instance.new("BillboardGui")
+        tag.Name = "ESPTag"
+        tag.Size = UDim2.new(0,100,0,30)
+        tag.AlwaysOnTop = true
+        tag.StudsOffset = Vector3.new(0,4,0)
+        tag.Parent = hrp
+
+        local label = Instance.new("TextLabel")
+        label.BackgroundTransparency = 1
+        label.Size = UDim2.new(1,0,1,0)
+        label.TextColor3 = color
+        label.TextStrokeTransparency = 0
+        label.Font = Enum.Font.GothamBold
+        label.TextScaled = true
+        label.Text = text
+        label.Parent = tag
+    end
+end
+
+-- [ Item ESP ]
+local function createItemESP(obj, color)
+    if obj:FindFirstChild("ESPItem") then return end
+    local esp = Instance.new("Highlight")
+    esp.Name = "ESPItem"
+    esp.FillColor = color
+    esp.OutlineColor = color
+    esp.FillTransparency = 0.7
+    esp.Parent = obj
+end
+
+-- [ FullBright / Environment Loop ]
+task.spawn(function()
+    while task.wait(0.2) do
+        -- Xóa sương mù + ánh sáng
+        Lighting.FogEnd = 1e6
+        Lighting.FogStart = 1e6
+        Lighting.Brightness = 3
+        Lighting.ClockTime = 14
+        Lighting.Ambient = Color3.fromRGB(255,255,255)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255,255,255)
+
+        -- Giảm đồ họa
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+
+        -- ESP cập nhật
+        for _,plr in pairs(Players:GetPlayers()) do
+            if plr ~= player and plr.Character and plr.Character:FindFirstChild("Humanoid") then
+                local hum = plr.Character.Humanoid
+                local color, text = Color3.fromRGB(0,255,0), "" -- xanh lá default
+                if hum.Health > 150 then
+                    color = Color3.fromRGB(255,0,0)
+                    text = "Killer"
+                elseif hum.Health < 140 then
+                    color = Color3.fromRGB(0,255,0)
+                end
+                createESP(plr, color, text)
+            end
+        end
+
+        -- Item ESP (Medkit / Bloxy)
+        for _,obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") or obj:IsA("Part") then
+                if obj.Name:lower():find("medkit") or obj.Name:lower():find("bloxy") then
+                    createItemESP(obj, Color3.fromRGB(0,150,255))
+                end
+            end
+        end
+    end
+end)

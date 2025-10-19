@@ -1,0 +1,118 @@
+-- ✅ GUI mini, kéo thả, có hiệu ứng lướt xuống + viền trắng sáng
+local TweenService = game:GetService("TweenService")
+
+-- Tạo ScreenGui trong CoreGui (chạy được trên KRNL)
+local gui = Instance.new("ScreenGui")
+gui.Name = "SmoothGui"
+if syn and syn.protect_gui then
+    syn.protect_gui(gui)
+    gui.Parent = game.CoreGui
+elseif gethui then
+    gui.Parent = gethui()
+else
+    gui.Parent = game.CoreGui
+end
+
+-- Frame chính
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 200, 0, 100)
+mainFrame.Position = UDim2.new(0.5, -100, 0, -120)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Visible = false
+mainFrame.Parent = gui
+
+-- Bo góc
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = mainFrame
+
+-- Viền sáng
+local stroke = Instance.new("UIStroke")
+stroke.Thickness = 1.5
+stroke.Color = Color3.fromRGB(255, 255, 255)
+stroke.Parent = mainFrame
+
+-- Tên GUI
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 25)
+title.BackgroundTransparency = 1
+title.Text = "Infinite Satamina"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.Parent = mainFrame
+
+-- Button
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0.8, 0, 0, 35)
+button.Position = UDim2.new(0.1, 0, 0.55, 0)
+button.BackgroundColor3 = Color3.fromRGB(50, 205, 50)
+button.Text = "Satamina"
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Font = Enum.Font.GothamBold
+button.TextSize = 18
+button.AutoButtonColor = false
+button.Parent = mainFrame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 10)
+btnCorner.Parent = button
+
+-- 💡 Biến bật/tắt
+local infiniteStamina = false
+
+-- Hiệu ứng click + code của bạn
+button.MouseButton1Click:Connect(function()
+	-- hiệu ứng click
+	local tween1 = TweenService:Create(
+		button,
+		TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{BackgroundColor3 = Color3.fromRGB(0, 255, 127)}
+	)
+	tween1:Play()
+	tween1.Completed:Connect(function()
+		TweenService:Create(
+			button,
+			TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{BackgroundColor3 = Color3.fromRGB(50, 205, 50)}
+		):Play()
+	end)
+
+	-- bật/tắt infinite stamina
+	infiniteStamina = not infiniteStamina
+	print("Infinite stamina:", infiniteStamina)
+
+	local success, StaminaModule = pcall(function()
+        return require(game.ReplicatedStorage.Systems.Character.Game.Sprinting)
+    end)
+    if not success or not StaminaModule then
+        warn("Không tìm thấy module stamina.")
+        return
+    end
+
+    StaminaModule.StaminaLossDisabled = true
+
+    task.spawn(function()
+        while infiniteStamina and StaminaModule do
+            task.wait(0.1)
+            StaminaModule.Stamina = StaminaModule.MaxStamina
+            if StaminaModule.StaminaChanged then
+                StaminaModule.StaminaChanged:Fire()
+            end
+        end
+    end)
+end)
+
+-- Hiện GUI + hiệu ứng lướt xuống
+task.wait(0.3)
+mainFrame.Visible = true
+mainFrame:TweenPosition(
+	UDim2.new(0.5, -100, 0.25, 0),
+	Enum.EasingDirection.Out,
+	Enum.EasingStyle.Quad,
+	0.6,
+	true
+)

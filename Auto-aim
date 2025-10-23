@@ -1,0 +1,131 @@
+-- Auto Aim GUI (Full, giữ sau khi chết, mỗi cấp +10 stub)
+-- Dán vào StarterPlayerScripts (LocalScript)
+
+local player = game.Players.LocalPlayer
+local runService = game:GetService("RunService")
+local tweenService = game:GetService("TweenService")
+
+--===== TẠO GUI =====--
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AutoAimGUI"
+ScreenGui.ResetOnSpawn = false -- Giữ GUI khi chết
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Khung chính
+local Main = Instance.new("Frame")
+Main.Size = UDim2.new(0, 200, 0, 120)
+Main.Position = UDim2.new(0.5, -100, -0.3, 0)
+Main.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Main.BorderSizePixel = 2
+Main.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Main.Active = true
+Main.Draggable = true
+Main.ClipsDescendants = true
+Main.Visible = false
+Main.Parent = ScreenGui
+
+-- Bo góc mềm mại
+local UICorner = Instance.new("UICorner", Main)
+UICorner.CornerRadius = UDim.new(0, 10)
+
+-- Viền sáng đen
+local UIStroke = Instance.new("UIStroke", Main)
+UIStroke.Color = Color3.fromRGB(0, 0, 0)
+UIStroke.Thickness = 1.5
+UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+UIStroke.Transparency = 0.3
+
+-- Layout dọc
+local Layout = Instance.new("UIListLayout", Main)
+Layout.Padding = UDim.new(0, 10)
+Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+Layout.VerticalAlignment = Enum.VerticalAlignment.Top
+Layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Tiêu đề
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, -10, 0, 25)
+Title.BackgroundTransparency = 1
+Title.Text = "Auto Aim GUI"
+Title.TextColor3 = Color3.fromRGB(0, 0, 0)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+
+-- Toggle Auto Aim
+local Toggle = Instance.new("TextButton", Main)
+Toggle.Size = UDim2.new(1, -20, 0, 30)
+Toggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+Toggle.Text = "Auto Aim: OFF"
+Toggle.Font = Enum.Font.Gotham
+Toggle.TextSize = 16
+Instance.new("UICorner", Toggle).CornerRadius = UDim.new(0, 8)
+
+-- TextBox nhập khoảng cách stub
+local Box = Instance.new("TextBox", Main)
+Box.Size = UDim2.new(1, -20, 0, 30)
+Box.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Box.TextColor3 = Color3.fromRGB(255, 255, 255)
+Box.Text = "2"
+Box.PlaceholderText = "Tối thiểu 2"
+Box.ClearTextOnFocus = false
+Box.Font = Enum.Font.Gotham
+Box.TextSize = 16
+Instance.new("UICorner", Box).CornerRadius = UDim.new(0, 8)
+
+-- Animation xuất hiện
+Main.Visible = true
+Main.Position = UDim2.new(0.5, -100, -0.3, 0)
+tweenService:Create(Main, TweenInfo.new(0.7, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -100, 0.3, 0)}):Play()
+
+--===== AUTO AIM LOGIC =====--
+local autoAimEnabled = false
+
+local function getClosestEnemy(maxDistance)
+	for _, plr in pairs(game.Players:GetPlayers()) do
+		if plr ~= player and plr.Character and plr.Character:FindFirstChild("Humanoid") then
+			local humanoid = plr.Character.Humanoid
+			local root = plr.Character:FindFirstChild("HumanoidRootPart")
+			local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+			if humanoid and humanoid.Health > 140 and root and myRoot then
+				local dist = (myRoot.Position - root.Position).Magnitude
+				if dist < maxDistance then
+					return root
+				end
+			end
+		end
+	end
+	return nil
+end
+
+Toggle.MouseButton1Click:Connect(function()
+	autoAimEnabled = not autoAimEnabled
+	Toggle.Text = "Auto Aim: " .. (autoAimEnabled and "ON" or "OFF")
+	Toggle.BackgroundColor3 = autoAimEnabled and Color3.fromRGB(0, 170, 80) or Color3.fromRGB(40, 40, 40)
+end)
+
+-- Hàm xử lý auto aim (hoạt động cả khi respawn)
+local function enableAutoAimLoop()
+	runService.RenderStepped:Connect(function()
+		if autoAimEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			local val = tonumber(Box.Text) or 2
+			val = math.max(val, 2) -- chỉ tối thiểu 2
+			local maxDist = (val - 1) * 10 + 10 -- Mỗi cấp cách nhau 10 stub
+			local target = getClosestEnemy(maxDist)
+			if target then
+				local myRoot = player.Character.HumanoidRootPart
+				local look = (target.Position - myRoot.Position).Unit
+				myRoot.CFrame = CFrame.new(myRoot.Position, myRoot.Position + look)
+			end
+		end
+	end)
+end
+
+-- Luôn giữ logic sau khi chết
+player.CharacterAdded:Connect(function()
+	task.wait(1)
+	enableAutoAimLoop()
+end)
+
+-- Bắt đầu logic lần đầu
+enableAutoAimLoop()
